@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from .config import llm_config
@@ -22,7 +23,7 @@ class CompatibleLLM:
         except ImportError:
             return None
 
-        client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        client = OpenAI(api_key=self.api_key, base_url=self.base_url, timeout=float(os.getenv("LLM_TIMEOUT_SECONDS", "90")))
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],

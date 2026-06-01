@@ -28,5 +28,5 @@ def llm_config() -> dict[str, str | None]:
     return {
         "api_key": os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY"),
         "base_url": os.getenv("LLM_BASE_URL", "https://api.deepseek.com"),
-        "model": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro"),
+        "model": os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash"),
     }

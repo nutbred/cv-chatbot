@@ -481,7 +481,7 @@ Tested:
 
 ```text
 LLM_AVAILABLE True
-MODEL deepseek-v4-pro
+MODEL deepseek-v4-flash
 BASE_URL https://api.deepseek.com
 RESULT LLM_OK
 ```
@@ -523,7 +523,7 @@ Create `.env`:
 ```env
 DEEPSEEK_API_KEY=your_key_here
 LLM_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-v4-pro
+DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
 An example environment file is provided at `.env-example`.
