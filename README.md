@@ -20,7 +20,7 @@ The app supports both deterministic RAG output and optional LLM-written answers 
 
 ## 2. HR Workflow Research and Product Assumptions
 
-This section captures the product and architecture thinking behind the implementation. The detailed brainstorm is also preserved in `brainstorming.md`.
+This section captures the product and architecture thinking behind the implementation.
 
 ### 2.1 User Context
 
@@ -594,7 +594,6 @@ python -m hr_resume_rag.cli evaluate
 | `hr_resume_rag/glossary.py` | Abbreviation and alias normalization |
 | `hr_resume_rag/llm.py` | DeepSeek/OpenAI-compatible LLM wrapper |
 | `hr_resume_rag/evaluation.py` | Built-in evaluation suite |
-| `brainstorming.md` | Product use cases and edge cases |
 | `docs/report.tex` | LaTeX report source |
 | `docs/demo_script.md` | Short video demo script |
 
