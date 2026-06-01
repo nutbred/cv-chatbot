@@ -108,6 +108,22 @@ The assistant uses three buckets:
 
 For example, a candidate with three years of experience should not be labeled a strong match for a five-year requirement. However, if the candidate has highly aligned projects and the requested tools, flexible mode can show the candidate as a near match with a clear caveat.
 
+\subsection{Why Prestige and Scope Signals Matter}
+
+Prestige or high-scope experience can be useful when a candidate misses a measurable requirement but may still deserve review. For example, a candidate with three years of experience instead of five may still be a reasonable near match if the CV shows unusually strong compensating evidence:
+
+\begin{itemize}[leftmargin=*]
+  \item experience at a recognized bank, fintech, or technology company;
+  \item senior or high-responsibility title for the experience level;
+  \item ownership of regulated, production, or large-scale systems;
+  \item domain-aligned projects that directly match the role;
+  \item certifications or repeated evidence across multiple experience bullets.
+\end{itemize}
+
+This signal should not turn a missing hard requirement into a strong match by itself. It is best used to explain why a candidate is a near match rather than ignored completely.
+
+For the current Kaggle resumes, many employer names are anonymized as \texttt{Company Name}, so the implementation does not use company prestige as a primary scoring feature. Instead, it uses more reliable compensation signals available in the text: seniority, project ownership, certifications, tool overlap, and domain alignment. For uploaded real-world CVs with visible employer names, prestige or company-scope could be added as an optional, transparent signal.
+
 \subsection{Edge-Case Policies}
 
 \begin{center}
@@ -294,8 +310,32 @@ The DeepSeek smoke test returned:
 LLM_AVAILABLE True
 MODEL deepseek-v4-flash
 BASE_URL https://api.deepseek.com
-RESULT LLM_OK
+RESULT FLASH_OK
 \end{lstlisting}
+
+\subsection{LLM Validation Suite}
+
+Additional tests were run with \texttt{deepseek-v4-flash}.
+
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.25\linewidth}|p{0.35\linewidth}|Y|}
+\hline
+\textbf{Test} & \textbf{Prompt / action} & \textbf{Result} \\
+\hline
+Direct smoke & Reply exactly: FLASH\_OK & Returned FLASH\_OK \\
+\hline
+Banking grounded answer & Find banking candidates with KYC and AML experience & Returned two Banking strong matches with KYC/AML evidence \\
+\hline
+IT abbreviation answer & Find BE candidates with Java and SQL & Preserved the BE ambiguity warning and returned IT backend matches \\
+\hline
+Banking near-match answer & Find banking candidates with KYC and AML and at least 20 years experience & Returned near matches with explicit missing KYC or experience gap \\
+\hline
+LLM profile extraction & One IT resume profile extraction & Returned \texttt{llm+heuristic}; role Information Technology Technician I; 64 skills; 40 tools; 19.0 estimated years; 1 uncertainty note \\
+\hline
+\end{tabularx}
+\end{center}
+
+The LLM is deliberately not the retrieval engine. It only receives retrieved candidates, match buckets, missing requirements, and evidence snippets. This keeps the answer grounded while making the final response easier for HR to read.
 
 \section{Example Prompts and Outputs}
 
@@ -465,5 +505,21 @@ Profile count & 235 \\
   \item Estimated years of experience are approximate when dates are missing, overlapping, or ambiguous.
   \item LlamaParse was not needed for the current dataset because pypdf extracted text successfully, but it is implemented for future scanned or complex PDFs.
 \end{itemize}
+
+\section{Short Video Demo Plan}
+
+A two to three minute demo is enough:
+
+\begin{enumerate}[leftmargin=*]
+  \item Open with the README and describe the project as a chat-first HR resume RAG assistant for Banking and IT resumes.
+  \item Show the Streamlit app at \texttt{http://localhost:8501}.
+  \item Point to runtime status in the sidebar: LLM configured, parser mode, and retrieval as FAISS + BM25.
+  \item Run: \texttt{Find banking candidates with KYC and AML experience}.
+  \item Open one candidate expander and show matched skills, recommendation, and evidence.
+  \item Run: \texttt{Find BE candidates with Java and SQL}; point out the BE ambiguity warning.
+  \item Run: \texttt{Find banking candidates with KYC and AML and at least 20 years experience}; show near-match gaps.
+  \item Toggle strict mode and rerun the near-match query to show hard filtering.
+  \item Close with the evaluation numbers: 235 PDFs, 1,490 evidence blocks, domain precision at 5 = 1.0, citation coverage = 1.0.
+\end{enumerate}
 
 \end{document}

@@ -68,7 +68,21 @@ Example:
 
 > If HR asks for 5 years and the candidate has 3 years, the candidate should not be called a strong match. But if the candidate has highly aligned projects, strong tools, and relevant domain exposure, the assistant can show them as a near match with a clear warning.
 
-### 2.5 Edge-Case Policies From Brainstorming
+### 2.5 Why Prestige and Scope Signals Matter
+
+Prestige or high-scope experience can be useful when a candidate misses a measurable requirement but may still deserve review. For example, a candidate with 3 years of experience instead of 5 may still be a reasonable near match if the CV shows unusually strong compensating evidence:
+
+- experience at a recognized bank, fintech, or technology company
+- senior or high-responsibility title for the experience level
+- ownership of regulated, production, or large-scale systems
+- domain-aligned projects that directly match the role
+- certifications or repeated evidence across multiple experience bullets
+
+This signal should never turn a missing hard requirement into a strong match by itself. It is best used to explain why a candidate is a **near match** rather than ignored completely.
+
+For the current Kaggle resumes, many employer names are anonymized as `Company Name`, so the implementation does not use company prestige as a primary scoring feature. Instead, it uses more reliable compensation signals available in the text: seniority, project ownership, certifications, tool overlap, and domain alignment. For uploaded real-world CVs with visible employer names, prestige/company-scope could be added as an optional, transparent signal.
+
+### 2.6 Edge-Case Policies From Brainstorming
 
 | Edge case | Policy |
 | --- | --- |
@@ -84,7 +98,7 @@ Example:
 | Scanned PDF | Mark low text and optionally use LlamaParse |
 | LLM API unavailable | Fall back to deterministic answer |
 
-### 2.6 Risks and Mitigations
+### 2.7 Risks and Mitigations
 
 | Risk | Mitigation |
 | --- | --- |
@@ -483,13 +497,27 @@ Tested:
 LLM_AVAILABLE True
 MODEL deepseek-v4-flash
 BASE_URL https://api.deepseek.com
-RESULT LLM_OK
+RESULT FLASH_OK
 ```
 
 Also tested:
 
 - LLM-written answer with `--use-llm`
 - Single-resume LLM profile extraction, which returned `extraction_method = llm+heuristic`
+
+### LLM Validation Suite
+
+Additional flash-model tests were run with `deepseek-v4-flash`.
+
+| Test | Prompt / action | Result |
+| --- | --- | --- |
+| Direct smoke | `Reply exactly: FLASH_OK` | Returned `FLASH_OK` |
+| Banking grounded answer | `Find banking candidates with KYC and AML experience` | Returned two Banking strong matches with KYC/AML evidence |
+| IT abbreviation answer | `Find BE candidates with Java and SQL` | Preserved the `BE` ambiguity warning and returned IT backend matches |
+| Banking near-match answer | `Find banking candidates with KYC and AML and at least 20 years experience` | Returned near matches with explicit missing KYC or experience gap |
+| LLM profile extraction | One IT resume profile extraction | Returned `llm+heuristic`, role `Information Technology Technician I`, 64 skills, 40 tools, 19.0 estimated years, 1 uncertainty note |
+
+The LLM is deliberately not the retrieval engine. It only receives retrieved candidates, match buckets, missing requirements, and evidence snippets. This keeps the answer grounded while making the final response easier for HR to read.
 
 The main built artifact currently uses heuristic profiles because rebuilding all 235 profiles with LLM calls costs more time/API usage. To rebuild with LLM extraction:
 
@@ -568,3 +596,26 @@ python -m hr_resume_rag.cli evaluate
 | `hr_resume_rag/evaluation.py` | Built-in evaluation suite |
 | `brainstorming.md` | Product use cases and edge cases |
 | `docs/report.tex` | LaTeX report source |
+| `docs/demo_script.md` | Short video demo script |
+
+## 15. Short Video Demo Plan
+
+A 2-3 minute demo is enough.
+
+1. **Open with the README** and say the tool is a chat-first HR resume RAG assistant for Banking and IT resumes.
+2. **Show the Streamlit app** at `http://localhost:8501`.
+3. **Point to runtime status** in the sidebar: LLM configured, parser mode, retrieval as FAISS + BM25.
+4. **Run a Banking query**: `Find banking candidates with KYC and AML experience`.
+5. **Open one candidate expander** and show matched skills, missing requirements, recommendation, and evidence.
+6. **Run an abbreviation query**: `Find BE candidates with Java and SQL`; point out the `BE` ambiguity warning.
+7. **Run a near-match query**: `Find banking candidates with KYC and AML and at least 20 years experience`; show near-match gaps.
+8. **Toggle strict mode** and rerun the near-match query to show hard filtering.
+9. **Close with artifacts/evaluation**: mention 235 PDFs indexed, 115 Banking, 120 IT, 1,490 evidence blocks, domain precision@5 = 1.0, citation coverage = 1.0.
+
+Suggested recording tools:
+
+- Windows: Xbox Game Bar (`Win + G`) or Clipchamp screen recorder.
+- Browser-only: Loom.
+- Open-source: OBS Studio.
+
+Keep the video focused on the HR workflow instead of code internals.
