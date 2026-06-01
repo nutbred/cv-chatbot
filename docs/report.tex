@@ -499,13 +499,4 @@ Profile count & 235 \\
 \end{tikzpicture}
 \end{center}
 
-\section{Limitations and Future Work}
-
-\begin{itemize}[leftmargin=*]
-  \item The current full artifact uses heuristic profile extraction. LLM extraction was tested on one resume and can be enabled for all resumes with \texttt{--use-llm-profile}.
-  \item Company prestige is not used because many resumes anonymize employers as ``Company Name''.
-  \item Estimated years of experience are approximate when dates are missing, overlapping, or ambiguous.
-  \item LlamaParse was not needed for the current dataset because pypdf extracted text successfully, but it is implemented for future scanned or complex PDFs.
-\end{itemize}
-
 \end{document}
