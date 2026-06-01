@@ -1,0 +1,309 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible
+}
+
+\title{HR Resume RAG Assistant: Implementation Report}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Project Summary}
+
+This project implements a chat-first HR assistant for resume screening over the Kaggle Resume Dataset. The system indexes only the \texttt{BANKING} and \texttt{INFORMATION-TECHNOLOGY} folders, as required by the assessment.
+
+The key design choice is to use structured candidate profiles plus section-level evidence retrieval instead of generic semantic chunking. Resumes are already semi-structured, so the system extracts one profile per candidate and keeps natural sections such as Summary, Skills, Experience, Education, and Certifications as evidence.
+
+\section{Technology Stack}
+
+\begin{tabular}{ll}
+\toprule
+Layer & Tooling \\
+\midrule
+UI & Streamlit \\
+CLI & Python argparse \\
+PDF parsing & pypdf \\
+Optional enhanced parsing & LlamaParse \\
+LLM integration & OpenAI SDK-compatible DeepSeek API \\
+Embedding retrieval & sentence-transformers/all-MiniLM-L6-v2 \\
+Vector index & FAISS \\
+Lexical retrieval & BM25 with rank-bm25 \\
+Artifacts & JSONL, FAISS index, BM25 pickle \\
+\bottomrule
+\end{tabular}
+
+\section{Workflow}
+
+\begin{enumerate}[leftmargin=*]
+  \item Discover PDFs from only \texttt{data/BANKING} and \texttt{data/INFORMATION-TECHNOLOGY}.
+  \item Parse PDFs locally with \texttt{pypdf}.
+  \item Optionally use LlamaParse for low-text or complex uploaded PDFs.
+  \item Extract one candidate profile per resume.
+  \item Extract section/page evidence blocks for citations.
+  \item Build FAISS embeddings and a BM25 lexical index.
+  \item Interpret HR queries into domain, role, skills, years, strict/flexible mode, and candidate IDs.
+  \item Rank candidates into Strong Match, Near Match, or Not Recommended.
+  \item Return deterministic output or optional LLM-written HR response grounded in retrieved evidence.
+\end{enumerate}
+
+\section{Dataset and Artifacts}
+
+\begin{tabular}{lr}
+\toprule
+Check & Result \\
+\midrule
+Total indexed PDFs & 235 \\
+Banking PDFs & 115 \\
+Information Technology PDFs & 120 \\
+Evidence blocks & 1490 \\
+Low-text PDFs detected & 0 \\
+Candidate profiles & 235 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Dataset Distribution Plot}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    ymin=0,
+    ymax=140,
+    ylabel={PDF count},
+    symbolic x coords={Banking,IT},
+    xtick=data,
+    nodes near coords,
+    width=0.75\linewidth,
+    height=0.35\linewidth
+]
+\addplot coordinates {(Banking,115) (IT,120)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection{Artifact Volume Plot}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xbar,
+    xmin=0,
+    xlabel={Count},
+    symbolic y coords={Low-text PDFs,Profiles,PDFs,Evidence blocks},
+    ytick=data,
+    nodes near coords,
+    width=0.8\linewidth,
+    height=0.38\linewidth
+]
+\addplot coordinates {(0,Low-text PDFs) (235,Profiles) (235,PDFs) (1490,Evidence blocks)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\section{Retrieval Design}
+
+The project uses hybrid retrieval:
+
+\begin{itemize}[leftmargin=*]
+  \item Structured filters for domain, strict mode, years, and candidate IDs.
+  \item FAISS vector retrieval for broad semantic similarity.
+  \item BM25 lexical retrieval for exact acronyms and skills such as KYC, AML, SQL, BE, FE, and Power BI.
+\end{itemize}
+
+This hybrid approach is better than pure vector search for resumes because HR queries often contain exact skills, acronyms, tools, and compliance terms.
+
+\section{LLM Usage}
+
+The LLM is optional and explicit. It is used in two places:
+
+\begin{itemize}[leftmargin=*]
+  \item \texttt{--use-llm-profile}: extract richer candidate profiles during build.
+  \item \texttt{--use-llm}: rewrite grounded retrieval results into an HR-friendly answer.
+\end{itemize}
+
+The LLM is not allowed to invent facts. The prompt instructs it to use only the provided structured matches and evidence.
+
+The DeepSeek smoke test returned:
+
+\begin{lstlisting}
+LLM_AVAILABLE True
+MODEL deepseek-v4-pro
+BASE_URL https://api.deepseek.com
+RESULT LLM_OK
+\end{lstlisting}
+
+\section{Example Prompts and Outputs}
+
+\subsection{Without LLM}
+
+\begin{lstlisting}
+python -m hr_resume_rag.cli ask "Find banking candidates with KYC and AML experience" --top-k 2
+\end{lstlisting}
+
+Output excerpt:
+
+\begin{lstlisting}
+Screening mode: flexible. Found 2 candidate(s).
+
+1. Candidate 11065180 - Strong match (BANKING, 12.5 years)
+Matched: Domain: BANKING, AML, KYC
+Recommendation: Compliance is a strong match because the CV supports the main requested criteria.
+
+2. Candidate 28989677 - Strong match (BANKING, 5 years)
+Matched: Domain: BANKING, AML, KYC
+\end{lstlisting}
+
+\subsection{With LLM}
+
+\begin{lstlisting}
+python -m hr_resume_rag.cli ask "Find banking candidates with KYC and AML experience" --top-k 2 --use-llm
+\end{lstlisting}
+
+Output excerpt:
+
+\begin{lstlisting}
+Recruiter Summary - Banking KYC/AML Candidates
+
+Rank 1: Resume ID 11065180 - Strong Match
+Why this candidate fits:
+- Deep banking domain experience in compliance/operations.
+- Explicitly lists KYC and AML in the skills section and demonstrates them in practice.
+
+Rank 2: Resume ID 28989677 - Strong Match
+Why this candidate fits:
+- Direct AML/KYC compliance role with hands-on compliance experience.
+\end{lstlisting}
+
+\subsection{Abbreviation Query}
+
+\begin{lstlisting}
+python -m hr_resume_rag.cli ask "Find BE candidates with Java and SQL" --top-k 3
+\end{lstlisting}
+
+Output excerpt:
+
+\begin{lstlisting}
+Clarification note: BE is ambiguous: Backend Engineering, Bachelor of Engineering.
+
+1. Candidate 83816738 - Strong match (INFORMATION-TECHNOLOGY, 4.2 years)
+Matched: Domain: INFORMATION-TECHNOLOGY, Java, SQL, Backend Engineering
+\end{lstlisting}
+
+\section{Edge Cases}
+
+\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
+\toprule
+Edge case & Handling \\
+\midrule
+Below required years & Near match in flexible mode, excluded in strict mode \\
+Unclear years & Near match in flexible mode, excluded if strict and years are required \\
+BE abbreviation & Context-aware warning; maps to backend in IT context \\
+B.E. degree & Treated as education context \\
+Lowercase ``be'' & Ignored as abbreviation \\
+KYC/AML exact acronyms & BM25 improves exact matching \\
+PowerBI vs Power BI & Normalized as Power BI / BI evidence \\
+Wrong domain & Domain filter prevents cross-domain results \\
+Missing core skill & Near match or not recommended depending on compensation \\
+Scanned PDF & Low-text detection; optional LlamaParse fallback \\
+LLM key missing or invalid & Fall back to deterministic grounded answer \\
+\bottomrule
+\end{tabular}
+
+\section{Evaluation}
+
+Latest evaluation:
+
+\begin{tabular}{lr}
+\toprule
+Metric & Result \\
+\midrule
+Query count & 15 \\
+Domain precision at 5 & 1.0 \\
+Citation coverage & 1.0 \\
+JSON validity rate & 1.0 \\
+Average latency & 14.144 seconds \\
+Profile count & 235 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Evaluation Metrics Plot}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    ymin=0,
+    ymax=1.1,
+    ylabel={Score},
+    symbolic x coords={Domain P@5,Citation,JSON},
+    xtick=data,
+    nodes near coords,
+    width=0.8\linewidth,
+    height=0.35\linewidth
+]
+\addplot coordinates {(Domain P@5,1.0) (Citation,1.0) (JSON,1.0)};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\subsection{Field Coverage Plot}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+    xbar,
+    xmin=0,
+    xmax=1.05,
+    xlabel={Coverage},
+    symbolic y coords={experience,years,role signals,skills,domain,resume id},
+    ytick=data,
+    nodes near coords,
+    width=0.85\linewidth,
+    height=0.42\linewidth
+]
+\addplot coordinates {
+  (1.0,experience)
+  (0.974,years)
+  (0.919,role signals)
+  (0.949,skills)
+  (1.0,domain)
+  (1.0,resume id)
+};
+\end{axis}
+\end{tikzpicture}
+\end{center}
+
+\section{Limitations and Future Work}
+
+\begin{itemize}[leftmargin=*]
+  \item The current full artifact uses heuristic profile extraction. LLM extraction was tested on one resume and can be enabled for all resumes with \texttt{--use-llm-profile}.
+  \item Company prestige is not used because many resumes anonymize employers as ``Company Name''.
+  \item Estimated years of experience are approximate when dates are missing, overlapping, or ambiguous.
+  \item LlamaParse was not needed for the current dataset because pypdf extracted text successfully, but it is implemented for future scanned or complex PDFs.
+\end{itemize}
+
+\section{References}
+
+\begin{itemize}[leftmargin=*]
+  \item Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks: \url{https://arxiv.org/abs/2005.11401}
+  \item RAGAS evaluation framework: \url{https://arxiv.org/abs/2309.15217}
+  \item Resume information extraction research: \url{https://www.sciencedirect.com/science/article/abs/pii/S0169023X23000629}
+  \item pypdf text extraction: \url{https://pypdf.readthedocs.io/en/stable/user/extract-text.html}
+  \item LlamaParse: \url{https://developers.llamaindex.ai/python/cloud/llamaparse/}
+\end{itemize}
+
+\end{document}

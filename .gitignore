@@ -1,0 +1,53 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env-example
+
+# Dataset and generated artifacts
+data/
+Resume.csv
+artifacts/
+*.index
+*.pkl
+*.jsonl
+
+# Original assessment prompt / local notes
+task.md
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# Streamlit and local app state
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Logs
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# LaTeX build outputs
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.pdf

@@ -1,0 +1,9 @@
+metric,value
+total_indexed_pdfs,235
+banking_pdfs,115
+information_technology_pdfs,120
+evidence_blocks,1490
+candidate_profiles,235
+low_text_pdfs,0
+embedding_dimension,384
+bm25_documents,1490
