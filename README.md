@@ -568,11 +568,3 @@ python -m hr_resume_rag.cli evaluate
 | `hr_resume_rag/evaluation.py` | Built-in evaluation suite |
 | `brainstorming.md` | Product use cases and edge cases |
 | `docs/report.tex` | LaTeX report source |
-
-## 15. Research References
-
-- Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks: https://arxiv.org/abs/2005.11401
-- RAGAS evaluation framework: https://arxiv.org/abs/2309.15217
-- Resume information extraction research: https://www.sciencedirect.com/science/article/abs/pii/S0169023X23000629
-- pypdf text extraction documentation: https://pypdf.readthedocs.io/en/stable/user/extract-text.html
-- LlamaParse documentation: https://developers.llamaindex.ai/python/cloud/llamaparse/

@@ -1,12 +1,16 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{hyperref}
-\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{pgfplots}
 \pgfplotsset{compat=1.18}
+\renewcommand{\arraystretch}{1.28}
+\setlength{\tabcolsep}{6pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
 \lstset{
   basicstyle=\ttfamily\small,
@@ -48,34 +52,49 @@ The product should therefore behave like an assistant that helps HR reason about
 
 \subsection{Core Assumptions}
 
-\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
-\toprule
-Assumption & Product decision \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.34\linewidth}|Y|}
+\hline
+\textbf{Assumption} & \textbf{Product decision} \\
+\hline
 HR needs explanations, not only IDs & Return matched skills, gaps, recommendation, and CV evidence \\
+\hline
 CVs are already structured & Use candidate profiles plus section evidence, not generic semantic chunks \\
+\hline
 Hiring criteria can be flexible & Support flexible and strict screening modes \\
+\hline
 Banking and IT use many acronyms & Add glossary normalization and BM25 retrieval \\
+\hline
 LLMs can hallucinate & Keep retrieval/ranking deterministic and only let the LLM rewrite grounded evidence \\
+\hline
 Company names are anonymized & Do not use company prestige as a ranking signal \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \subsection{Design Tradeoffs}
 
-\begin{tabular}{p{0.35\linewidth}p{0.57\linewidth}}
-\toprule
-Decision & Reasoning \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.31\linewidth}|Y|}
+\hline
+\textbf{Decision} & \textbf{Reasoning} \\
+\hline
 Structured profiles first & HR evaluates candidate-level suitability rather than isolated paragraphs \\
+\hline
 Section evidence second & Skills and experience evidence should be traceable to natural CV sections \\
+\hline
 Hybrid FAISS + BM25 & Embeddings handle broad language; BM25 protects exact terms like KYC, AML, SQL, BE, FE \\
+\hline
 Heuristic MVP + optional LLM & The app runs without API cost, but can use DeepSeek when available \\
+\hline
 Optional LlamaParse & pypdf works for the current PDFs; LlamaParse is useful for scanned or complex future PDFs \\
+\hline
 Flexible default & Recruiters often want promising near matches \\
+\hline
 Strict toggle & Some requirements are hard filters and must exclude uncertain candidates \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \subsection{HR Reasoning Model}
 
@@ -91,56 +110,85 @@ For example, a candidate with three years of experience should not be labeled a 
 
 \subsection{Edge-Case Policies}
 
-\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
-\toprule
-Edge case & Policy \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.34\linewidth}|Y|}
+\hline
+\textbf{Edge case} & \textbf{Policy} \\
+\hline
 Three years vs five years requested & Flexible mode can show near match; strict mode excludes \\
+\hline
 Skill appears only in education & Lower confidence and suggest verification \\
+\hline
 Right skills but wrong domain & Domain filter blocks if domain is explicit \\
+\hline
 Right domain but missing core tool & Near match or not recommended depending on compensation \\
+\hline
 Missing or unclear dates & Show uncertainty; strict mode excludes if years are required \\
+\hline
 BE abbreviation & Warn that it can mean Backend Engineering or Bachelor of Engineering \\
+\hline
 B.E. in education context & Treat as degree, not backend \\
+\hline
 Lowercase ``be'' & Ignore as abbreviation \\
+\hline
 PowerBI / Power BI / BI & Normalize as related evidence \\
+\hline
 Scanned PDF & Mark low text and optionally use LlamaParse \\
+\hline
 LLM unavailable & Fall back to deterministic grounded answer \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \subsection{Risks and Mitigations}
 
-\begin{tabular}{p{0.35\linewidth}p{0.57\linewidth}}
-\toprule
-Risk & Mitigation \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.31\linewidth}|Y|}
+\hline
+\textbf{Risk} & \textbf{Mitigation} \\
+\hline
 LLM hallucination & LLM receives only retrieved evidence and is instructed not to invent facts \\
+\hline
 Keyword stuffing & Evidence snippets show whether skills appear in real work context \\
+\hline
 Acronym ambiguity & Glossary and clarification notes \\
+\hline
 Incorrect years estimate & Years are labeled as estimates and uncertain fields are exposed \\
+\hline
 Over-filtering good candidates & Flexible mode surfaces near matches \\
+\hline
 Under-filtering hard requirements & Strict mode excludes missing or uncertain hard criteria \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \section{Technology Stack}
 
-\begin{tabular}{ll}
-\toprule
-Layer & Tooling \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.31\linewidth}|Y|}
+\hline
+\textbf{Layer} & \textbf{Tooling} \\
+\hline
 UI & Streamlit \\
+\hline
 CLI & Python argparse \\
+\hline
 PDF parsing & pypdf \\
+\hline
 Optional enhanced parsing & LlamaParse \\
+\hline
 LLM integration & OpenAI SDK-compatible DeepSeek API \\
+\hline
 Embedding retrieval & sentence-transformers/all-MiniLM-L6-v2 \\
+\hline
 Vector index & FAISS \\
+\hline
 Lexical retrieval & BM25 with rank-bm25 \\
+\hline
 Artifacts & JSONL, FAISS index, BM25 pickle \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \section{Workflow}
 
@@ -158,18 +206,25 @@ Artifacts & JSONL, FAISS index, BM25 pickle \\
 
 \section{Dataset and Artifacts}
 
-\begin{tabular}{lr}
-\toprule
-Check & Result \\
-\midrule
+\begin{center}
+\begin{tabularx}{0.82\linewidth}{|Y|r|}
+\hline
+\textbf{Check} & \textbf{Result} \\
+\hline
 Total indexed PDFs & 235 \\
+\hline
 Banking PDFs & 115 \\
+\hline
 Information Technology PDFs & 120 \\
+\hline
 Evidence blocks & 1490 \\
+\hline
 Low-text PDFs detected & 0 \\
+\hline
 Candidate profiles & 235 \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \subsection{Dataset Distribution Plot}
 
@@ -301,40 +356,59 @@ Matched: Domain: INFORMATION-TECHNOLOGY, Java, SQL, Backend Engineering
 
 \section{Edge Cases}
 
-\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
-\toprule
-Edge case & Handling \\
-\midrule
+\begin{center}
+\begin{tabularx}{\linewidth}{|p{0.34\linewidth}|Y|}
+\hline
+\textbf{Edge case} & \textbf{Handling} \\
+\hline
 Below required years & Near match in flexible mode, excluded in strict mode \\
+\hline
 Unclear years & Near match in flexible mode, excluded if strict and years are required \\
+\hline
 BE abbreviation & Context-aware warning; maps to backend in IT context \\
+\hline
 B.E. degree & Treated as education context \\
+\hline
 Lowercase ``be'' & Ignored as abbreviation \\
+\hline
 KYC/AML exact acronyms & BM25 improves exact matching \\
+\hline
 PowerBI vs Power BI & Normalized as Power BI / BI evidence \\
+\hline
 Wrong domain & Domain filter prevents cross-domain results \\
+\hline
 Missing core skill & Near match or not recommended depending on compensation \\
+\hline
 Scanned PDF & Low-text detection; optional LlamaParse fallback \\
+\hline
 LLM key missing or invalid & Fall back to deterministic grounded answer \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \section{Evaluation}
 
 Latest evaluation:
 
-\begin{tabular}{lr}
-\toprule
-Metric & Result \\
-\midrule
+\begin{center}
+\begin{tabularx}{0.82\linewidth}{|Y|r|}
+\hline
+\textbf{Metric} & \textbf{Result} \\
+\hline
 Query count & 15 \\
+\hline
 Domain precision at 5 & 1.0 \\
+\hline
 Citation coverage & 1.0 \\
+\hline
 JSON validity rate & 1.0 \\
+\hline
 Average latency & 14.144 seconds \\
+\hline
 Profile count & 235 \\
-\bottomrule
-\end{tabular}
+\hline
+\end{tabularx}
+\end{center}
 
 \subsection{Evaluation Metrics Plot}
 
@@ -390,16 +464,6 @@ Profile count & 235 \\
   \item Company prestige is not used because many resumes anonymize employers as ``Company Name''.
   \item Estimated years of experience are approximate when dates are missing, overlapping, or ambiguous.
   \item LlamaParse was not needed for the current dataset because pypdf extracted text successfully, but it is implemented for future scanned or complex PDFs.
-\end{itemize}
-
-\section{References}
-
-\begin{itemize}[leftmargin=*]
-  \item Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks: \url{https://arxiv.org/abs/2005.11401}
-  \item RAGAS evaluation framework: \url{https://arxiv.org/abs/2309.15217}
-  \item Resume information extraction research: \url{https://www.sciencedirect.com/science/article/abs/pii/S0169023X23000629}
-  \item pypdf text extraction: \url{https://pypdf.readthedocs.io/en/stable/user/extract-text.html}
-  \item LlamaParse: \url{https://developers.llamaindex.ai/python/cloud/llamaparse/}
 \end{itemize}
 
 \end{document}
