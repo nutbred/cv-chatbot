@@ -18,7 +18,7 @@ Resumes are already semi-structured. A typical CV has summary, skills, experienc
 
 The app supports both deterministic RAG output and optional LLM-written answers through the OpenAI SDK-compatible DeepSeek API.
 
-## 2. CAT / Product Thinking
+## 2. HR Workflow Research and Product Assumptions
 
 This section captures the product and architecture thinking behind the implementation. The detailed brainstorm is also preserved in `brainstorming.md`.
 
