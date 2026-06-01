@@ -18,8 +18,6 @@ Resumes are already semi-structured. A typical CV has summary, skills, experienc
 
 The app supports both deterministic RAG output and optional LLM-written answers through the OpenAI SDK-compatible DeepSeek API.
 
-For source code, setup instructions, and implementation details, see: https://github.com/nutbred/cv-chatbot
-
 ## 2. HR Workflow Research and Product Assumptions
 
 This section captures the product and architecture thinking behind the implementation.
