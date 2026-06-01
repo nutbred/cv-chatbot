@@ -18,7 +18,84 @@ Resumes are already semi-structured. A typical CV has summary, skills, experienc
 
 The app supports both deterministic RAG output and optional LLM-written answers through the OpenAI SDK-compatible DeepSeek API.
 
-## 2. Technology Stack
+## 2. CAT / Product Thinking
+
+This section captures the critical assessment thinking behind the implementation. The detailed brainstorm is also preserved in `brainstorming.md`.
+
+### 2.1 User Context
+
+The target user is an HR or recruiting user with limited technical background. They may not know how to write structured filters, vector queries, or Boolean search. They are more likely to ask in natural language:
+
+- "Find IT candidates with backend, SQL, and 1+ year experience."
+- "Is this candidate weak for Power BI?"
+- "Why did you recommend this candidate?"
+- "Show me stretch candidates if they are close enough."
+
+Therefore, the product should feel like an assistant, not only a search form.
+
+### 2.2 Core Product Assumptions
+
+| Assumption | Product decision |
+| --- | --- |
+| HR wants explanations, not just ranked IDs | Return matched skills, missing skills, recommendation, and evidence |
+| CVs are already structured | Use candidate profile + section evidence instead of generic semantic chunks |
+| Hiring criteria are sometimes flexible | Support both flexible mode and strict mode |
+| Acronyms matter in Banking and IT | Add abbreviation glossary and BM25 lexical retrieval |
+| LLMs can write better summaries but may hallucinate | Keep retrieval/ranking deterministic and give the LLM only grounded evidence |
+| Company names are anonymized in this dataset | Do not use company prestige as a ranking signal |
+
+### 2.3 Design Tradeoffs
+
+| Decision | Why |
+| --- | --- |
+| Structured profiles first | HR queries usually ask about candidate-level suitability, not isolated paragraphs |
+| Section evidence second | Evidence snippets should come from natural CV sections such as Skills and Experience |
+| Hybrid FAISS + BM25 | Embeddings help broad phrasing; BM25 protects exact acronyms like KYC, AML, SQL, BE, FE |
+| Heuristic MVP + optional LLM | The app works without API cost, but can use DeepSeek when keys are available |
+| Optional LlamaParse | pypdf works for the current PDFs; LlamaParse is reserved for scanned/complex PDFs |
+| Flexible default | Real recruiters often want close candidates, not only perfect keyword matches |
+| Strict toggle | Some requirements are true hard filters, such as regulatory skill or minimum years |
+
+### 2.4 HR Reasoning Model
+
+The assistant does not treat every requirement as binary. It uses three buckets:
+
+- **Strong match**: the CV clearly supports domain, required skills, and years.
+- **Near match**: the CV misses something measurable but has compensating evidence.
+- **Not recommended**: the CV misses core requirements and does not have enough compensation.
+
+Example:
+
+> If HR asks for 5 years and the candidate has 3 years, the candidate should not be called a strong match. But if the candidate has highly aligned projects, strong tools, and relevant domain exposure, the assistant can show them as a near match with a clear warning.
+
+### 2.5 Edge-Case Policies From Brainstorming
+
+| Edge case | Policy |
+| --- | --- |
+| 3 years vs 5 years requested | Flexible mode can show near match; strict mode excludes |
+| Skill appears only in education | Lower confidence and encourage verification |
+| Candidate has right skills but wrong domain | Domain filter blocks if domain is explicit |
+| Candidate has right domain but missing core tool | Near match or not recommended depending on compensation |
+| Missing/unclear dates | Show uncertainty; strict mode excludes if minimum years required |
+| `BE` abbreviation | Warn that it may mean Backend Engineering or Bachelor of Engineering |
+| `B.E.` in education context | Treat as degree, not backend |
+| Lowercase `be` | Ignore as abbreviation |
+| `PowerBI`, `Power BI`, `BI`, dashboarding | Normalize as related evidence |
+| Scanned PDF | Mark low text and optionally use LlamaParse |
+| LLM API unavailable | Fall back to deterministic answer |
+
+### 2.6 Risks and Mitigations
+
+| Risk | Mitigation |
+| --- | --- |
+| LLM hallucination | LLM sees only retrieved matches/evidence and is instructed not to invent facts |
+| Keyword stuffing in resumes | Evidence is shown so HR can inspect whether the skill appears in real work context |
+| Acronym ambiguity | Glossary + clarification notes |
+| Incorrect years estimate | Years are labeled as estimates and uncertain fields are exposed |
+| Over-filtering good candidates | Flexible mode surfaces near matches |
+| Under-filtering hard requirements | Strict mode excludes missing/uncertain hard criteria |
+
+## 3. Technology Stack
 
 | Layer | Tooling |
 | --- | --- |
@@ -34,7 +111,7 @@ The app supports both deterministic RAG output and optional LLM-written answers 
 | Data processing | Python dataclasses, JSONL artifacts, pandas-compatible outputs |
 | Evaluation | Built-in HR-style query suite |
 
-## 3. Dataset Scope
+## 4. Dataset Scope
 
 Only these folders are indexed:
 
@@ -76,7 +153,7 @@ Low-text PDFs            | 0
 
 The numeric source for these charts is also saved in `docs/artifact_summary.csv`.
 
-## 4. System Workflow
+## 5. System Workflow
 
 ```mermaid
 flowchart LR
@@ -124,7 +201,7 @@ flowchart LR
    - Deterministic mode composes answers from ranked matches and evidence.
    - LLM mode sends only grounded matches and evidence to DeepSeek, then asks the model to write an HR-friendly answer without inventing facts.
 
-## 5. Why Not Generic Semantic Chunking?
+## 6. Why Not Generic Semantic Chunking?
 
 Generic semantic chunking is useful for long unstructured documents, but resumes are short and already organized. For this task, arbitrary semantic chunks can split skill lists or experience bullets in unnatural places.
 
@@ -136,7 +213,7 @@ This project uses:
 
 This gives HR users better explanations than raw chunk search.
 
-## 6. Match Logic
+## 7. Match Logic
 
 The assistant returns candidates in three buckets.
 
@@ -155,7 +232,7 @@ Example near-match reasoning:
 
 > Candidate is below the requested 20-year threshold, estimated around 12.5 years. However, AML and KYC are both present with compliance/operations evidence, so this is a near match rather than a full match.
 
-## 7. Abbreviation and Alias Handling
+## 8. Abbreviation and Alias Handling
 
 The system includes a glossary for HR, IT, and Banking abbreviations. It normalizes terms before filtering and ranking.
 
@@ -182,11 +259,11 @@ Important behavior:
 - Lowercase `be` is not treated as backend.
 - Banking acronyms like `KYC` and `AML` are exact-match sensitive, which is why BM25 was added.
 
-## 8. Example Prompts and Outputs
+## 9. Example Prompts and Outputs
 
 These examples were tested after building the artifacts.
 
-### 8.1 Banking Query Without LLM
+### 9.1 Banking Query Without LLM
 
 Command:
 
@@ -211,7 +288,7 @@ Evidence: [Experience p.1] Senior compliance officer AML/CFT ... OFAC ... Suspic
 
 This is deterministic output. It is reliable and grounded, but less conversational.
 
-### 8.2 Banking Query With LLM
+### 9.2 Banking Query With LLM
 
 Command:
 
@@ -240,7 +317,7 @@ Why this candidate fits:
 
 The LLM does not retrieve independently. It only rewrites the retrieved profiles and evidence into a more HR-friendly answer.
 
-### 8.3 IT Query Without Abbreviation
+### 9.3 IT Query Without Abbreviation
 
 Command:
 
@@ -258,7 +335,7 @@ Matched: Domain: INFORMATION-TECHNOLOGY, Backend Engineering, SQL, Experience: 1
 Matched: Domain: INFORMATION-TECHNOLOGY, Backend Engineering, SQL, Experience: 2 years >= 1
 ```
 
-### 8.4 IT Query With Abbreviation
+### 9.4 IT Query With Abbreviation
 
 Command:
 
@@ -281,7 +358,7 @@ Matched: Domain: INFORMATION-TECHNOLOGY, Java, SQL, Backend Engineering
 
 The abbreviation is handled, but the uncertainty is surfaced to HR.
 
-### 8.5 Banking Near-Match Query
+### 9.5 Banking Near-Match Query
 
 Command:
 
@@ -303,7 +380,7 @@ Missing/gap: Experience below target: 12.5 years vs 20
 
 This demonstrates flexible screening: candidates can still be shown if they have strong compensating evidence.
 
-### 8.6 Strict Mode
+### 9.6 Strict Mode
 
 Command:
 
@@ -320,7 +397,7 @@ Try relaxing the domain, years, or required skills.
 
 Strict mode excludes candidates when hard requirements are missing or cannot be proven.
 
-## 9. Edge Cases Documented and Tested
+## 10. Edge Cases Documented and Tested
 
 | Edge case | Handling |
 | --- | --- |
@@ -340,7 +417,7 @@ Strict mode excludes candidates when hard requirements are missing or cannot be 
 | Uploaded CV | App can parse one uploaded PDF and estimate whether it is closer to Banking, IT, or unclear |
 | LLM unavailable or invalid key | System falls back to deterministic grounded answer |
 
-## 10. Evaluation Results
+## 11. Evaluation Results
 
 Command:
 
@@ -394,7 +471,7 @@ experience_summary        | ################################################## 1
 
 The numeric source for these charts is also saved in `docs/evaluation_summary.csv`.
 
-## 11. LLM and LlamaParse Status
+## 12. LLM and LlamaParse Status
 
 ### LLM
 
@@ -433,7 +510,7 @@ python -m hr_resume_rag.cli build --use-llama-parse
 
 For the current 235 PDFs, `pypdf` parsed all documents with no low-text failures, so LlamaParse was not necessary for the baseline artifact.
 
-## 12. How to Run
+## 13. How to Run
 
 Install dependencies:
 
@@ -477,7 +554,7 @@ Evaluate:
 python -m hr_resume_rag.cli evaluate
 ```
 
-## 13. Important Files
+## 14. Important Files
 
 | File | Purpose |
 | --- | --- |
@@ -492,7 +569,7 @@ python -m hr_resume_rag.cli evaluate
 | `brainstorming.md` | Product use cases and edge cases |
 | `docs/report.tex` | LaTeX report source |
 
-## 14. Research References
+## 15. Research References
 
 - Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks: https://arxiv.org/abs/2005.11401
 - RAGAS evaluation framework: https://arxiv.org/abs/2309.15217

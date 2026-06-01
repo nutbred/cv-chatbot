@@ -28,6 +28,102 @@ This project implements a chat-first HR assistant for resume screening over the 
 
 The key design choice is to use structured candidate profiles plus section-level evidence retrieval instead of generic semantic chunking. Resumes are already semi-structured, so the system extracts one profile per candidate and keeps natural sections such as Summary, Skills, Experience, Education, and Certifications as evidence.
 
+\section{CAT / Product Thinking}
+
+This section documents the critical assessment thinking and brainstorming behind the implementation. The target user is an HR or recruiting user with limited technical background. The system therefore prioritizes a chat-first workflow, short explanations, visible evidence, and clear warnings over a purely technical search interface.
+
+\subsection{User Context}
+
+Typical HR questions are natural-language screening tasks:
+
+\begin{itemize}[leftmargin=*]
+  \item Find IT candidates with backend, SQL, and at least one year of experience.
+  \item Find Banking candidates with KYC and AML experience.
+  \item Explain why a candidate is weak for a Power BI-heavy role.
+  \item Show stretch candidates if they are close enough.
+  \item Compare candidates and explain tradeoffs.
+\end{itemize}
+
+The product should therefore behave like an assistant that helps HR reason about fit, not only a vector search demo.
+
+\subsection{Core Assumptions}
+
+\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
+\toprule
+Assumption & Product decision \\
+\midrule
+HR needs explanations, not only IDs & Return matched skills, gaps, recommendation, and CV evidence \\
+CVs are already structured & Use candidate profiles plus section evidence, not generic semantic chunks \\
+Hiring criteria can be flexible & Support flexible and strict screening modes \\
+Banking and IT use many acronyms & Add glossary normalization and BM25 retrieval \\
+LLMs can hallucinate & Keep retrieval/ranking deterministic and only let the LLM rewrite grounded evidence \\
+Company names are anonymized & Do not use company prestige as a ranking signal \\
+\bottomrule
+\end{tabular}
+
+\subsection{Design Tradeoffs}
+
+\begin{tabular}{p{0.35\linewidth}p{0.57\linewidth}}
+\toprule
+Decision & Reasoning \\
+\midrule
+Structured profiles first & HR evaluates candidate-level suitability rather than isolated paragraphs \\
+Section evidence second & Skills and experience evidence should be traceable to natural CV sections \\
+Hybrid FAISS + BM25 & Embeddings handle broad language; BM25 protects exact terms like KYC, AML, SQL, BE, FE \\
+Heuristic MVP + optional LLM & The app runs without API cost, but can use DeepSeek when available \\
+Optional LlamaParse & pypdf works for the current PDFs; LlamaParse is useful for scanned or complex future PDFs \\
+Flexible default & Recruiters often want promising near matches \\
+Strict toggle & Some requirements are hard filters and must exclude uncertain candidates \\
+\bottomrule
+\end{tabular}
+
+\subsection{HR Reasoning Model}
+
+The assistant uses three buckets:
+
+\begin{itemize}[leftmargin=*]
+  \item Strong Match: domain, required skills, and measurable requirements are supported by evidence.
+  \item Near Match: a measurable requirement is missing, but compensating evidence exists.
+  \item Not Recommended: core requirements are missing and there is not enough compensation.
+\end{itemize}
+
+For example, a candidate with three years of experience should not be labeled a strong match for a five-year requirement. However, if the candidate has highly aligned projects and the requested tools, flexible mode can show the candidate as a near match with a clear caveat.
+
+\subsection{Edge-Case Policies}
+
+\begin{tabular}{p{0.42\linewidth}p{0.5\linewidth}}
+\toprule
+Edge case & Policy \\
+\midrule
+Three years vs five years requested & Flexible mode can show near match; strict mode excludes \\
+Skill appears only in education & Lower confidence and suggest verification \\
+Right skills but wrong domain & Domain filter blocks if domain is explicit \\
+Right domain but missing core tool & Near match or not recommended depending on compensation \\
+Missing or unclear dates & Show uncertainty; strict mode excludes if years are required \\
+BE abbreviation & Warn that it can mean Backend Engineering or Bachelor of Engineering \\
+B.E. in education context & Treat as degree, not backend \\
+Lowercase ``be'' & Ignore as abbreviation \\
+PowerBI / Power BI / BI & Normalize as related evidence \\
+Scanned PDF & Mark low text and optionally use LlamaParse \\
+LLM unavailable & Fall back to deterministic grounded answer \\
+\bottomrule
+\end{tabular}
+
+\subsection{Risks and Mitigations}
+
+\begin{tabular}{p{0.35\linewidth}p{0.57\linewidth}}
+\toprule
+Risk & Mitigation \\
+\midrule
+LLM hallucination & LLM receives only retrieved evidence and is instructed not to invent facts \\
+Keyword stuffing & Evidence snippets show whether skills appear in real work context \\
+Acronym ambiguity & Glossary and clarification notes \\
+Incorrect years estimate & Years are labeled as estimates and uncertain fields are exposed \\
+Over-filtering good candidates & Flexible mode surfaces near matches \\
+Under-filtering hard requirements & Strict mode excludes missing or uncertain hard criteria \\
+\bottomrule
+\end{tabular}
+
 \section{Technology Stack}
 
 \begin{tabular}{ll}
