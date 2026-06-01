@@ -2,7 +2,7 @@
 
 ## 1. Project Summary
 
-This project implements a chat-first HR assistant for resume screening over the Kaggle Resume Dataset. The assessment requires using only the `BANKING` and `INFORMATION-TECHNOLOGY` folders, so the system indexes only those two domains.
+This project implements a chat-first HR assistant for resume screening over the Kaggle Resume Dataset. It focuses on the `BANKING` and `INFORMATION-TECHNOLOGY` domains and indexes only those two resume groups.
 
 The main design choice is:
 
@@ -20,7 +20,7 @@ The app supports both deterministic RAG output and optional LLM-written answers 
 
 ## 2. CAT / Product Thinking
 
-This section captures the critical assessment thinking behind the implementation. The detailed brainstorm is also preserved in `brainstorming.md`.
+This section captures the product and architecture thinking behind the implementation. The detailed brainstorm is also preserved in `brainstorming.md`.
 
 ### 2.1 User Context
 
@@ -203,7 +203,7 @@ flowchart LR
 
 ## 6. Why Not Generic Semantic Chunking?
 
-Generic semantic chunking is useful for long unstructured documents, but resumes are short and already organized. For this task, arbitrary semantic chunks can split skill lists or experience bullets in unnatural places.
+Generic semantic chunking is useful for long unstructured documents, but resumes are short and already organized. In this domain, arbitrary semantic chunks can split skill lists or experience bullets in unnatural places.
 
 This project uses:
 
