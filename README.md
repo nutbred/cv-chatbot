@@ -595,26 +595,3 @@ python -m hr_resume_rag.cli evaluate
 | `hr_resume_rag/llm.py` | DeepSeek/OpenAI-compatible LLM wrapper |
 | `hr_resume_rag/evaluation.py` | Built-in evaluation suite |
 | `docs/report.tex` | LaTeX report source |
-| `docs/demo_script.md` | Short video demo script |
-
-## 15. Short Video Demo Plan
-
-A 2-3 minute demo is enough.
-
-1. **Open with the README** and say the tool is a chat-first HR resume RAG assistant for Banking and IT resumes.
-2. **Show the Streamlit app** at `http://localhost:8501`.
-3. **Point to runtime status** in the sidebar: LLM configured, parser mode, retrieval as FAISS + BM25.
-4. **Run a Banking query**: `Find banking candidates with KYC and AML experience`.
-5. **Open one candidate expander** and show matched skills, missing requirements, recommendation, and evidence.
-6. **Run an abbreviation query**: `Find BE candidates with Java and SQL`; point out the `BE` ambiguity warning.
-7. **Run a near-match query**: `Find banking candidates with KYC and AML and at least 20 years experience`; show near-match gaps.
-8. **Toggle strict mode** and rerun the near-match query to show hard filtering.
-9. **Close with artifacts/evaluation**: mention 235 PDFs indexed, 115 Banking, 120 IT, 1,490 evidence blocks, domain precision@5 = 1.0, citation coverage = 1.0.
-
-Suggested recording tools:
-
-- Windows: Xbox Game Bar (`Win + G`) or Clipchamp screen recorder.
-- Browser-only: Loom.
-- Open-source: OBS Studio.
-
-Keep the video focused on the HR workflow instead of code internals.
