@@ -508,20 +508,4 @@ Profile count & 235 \\
   \item LlamaParse was not needed for the current dataset because pypdf extracted text successfully, but it is implemented for future scanned or complex PDFs.
 \end{itemize}
 
-\section{Short Video Demo Plan}
-
-A two to three minute demo is enough:
-
-\begin{enumerate}[leftmargin=*]
-  \item Open with the README and describe the project as a chat-first HR resume RAG assistant for Banking and IT resumes.
-  \item Show the Streamlit app at \texttt{http://localhost:8501}.
-  \item Point to runtime status in the sidebar: LLM configured, parser mode, and retrieval as FAISS + BM25.
-  \item Run: \texttt{Find banking candidates with KYC and AML experience}.
-  \item Open one candidate expander and show matched skills, recommendation, and evidence.
-  \item Run: \texttt{Find BE candidates with Java and SQL}; point out the BE ambiguity warning.
-  \item Run: \texttt{Find banking candidates with KYC and AML and at least 20 years experience}; show near-match gaps.
-  \item Toggle strict mode and rerun the near-match query to show hard filtering.
-  \item Close with the evaluation numbers: 235 PDFs, 1,490 evidence blocks, domain precision at 5 = 1.0, citation coverage = 1.0.
-\end{enumerate}
-
 \end{document}
